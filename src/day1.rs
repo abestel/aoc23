@@ -7,6 +7,7 @@ use nom::{
         line_ending,
     },
     combinator::{
+        all_consuming,
         map,
         opt,
         peek,
@@ -20,7 +21,6 @@ use nom::{
     Finish,
     IResult,
 };
-use nom::combinator::all_consuming;
 
 #[derive(Clone, Debug)]
 enum Value {
