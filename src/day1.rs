@@ -62,7 +62,7 @@ impl Value {
 }
 
 fn parse(input: &str) -> IResult<&str, Vec<Vec<Value>>> {
-    return many1(terminated(
+    many1(terminated(
         many1(alt((
             // Match "stringified" numbers without consuming more than the first character
             // This allows to read 'twone' as [Two, One] instead of [Two, Char(n), Char(e)]
@@ -86,7 +86,7 @@ fn parse(input: &str) -> IResult<&str, Vec<Vec<Value>>> {
             ),
         ))),
         opt(line_ending),
-    ))(input);
+    ))(input)
 }
 
 fn parse_and_sum(
