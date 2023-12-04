@@ -7,6 +7,7 @@ use nom::{
         space0,
     },
     combinator::{
+        all_consuming,
         map,
         opt,
         value,
@@ -143,7 +144,7 @@ impl Dices {
 }
 
 fn parse_games(input: &str) -> IResult<&str, Vec<Game>> {
-    many1(terminated(Game::parse, opt(line_ending)))(input)
+    all_consuming(many1(terminated(Game::parse, opt(line_ending))))(input)
 }
 
 fn first(
