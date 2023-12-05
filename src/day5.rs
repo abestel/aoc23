@@ -191,13 +191,12 @@ pub fn first(
 ) {
     let (_, almanac) = Almanac::parse(data).finish().unwrap();
 
-    let mut min_location = u64::MAX;
-    for seed in &almanac.seeds {
-        let location = almanac.associate(*seed);
-        if location < min_location {
-            min_location = location;
-        }
-    }
+    let min_location = &almanac
+        .seeds
+        .iter()
+        .map(|seed| almanac.associate(*seed))
+        .min()
+        .unwrap_or_default();
 
     println!("[{}] Min location is {:?}", name, min_location);
 }
@@ -216,16 +215,13 @@ pub fn second(
         .map(|chunk| {
             let start = chunk[0];
             let size = chunk[1];
+            let range = start..(start + size);
 
-            let mut min_location = u64::MAX;
-            for seed in start..(start + size) {
-                let location = almanac.associate(seed);
-                if location < min_location {
-                    min_location = location;
-                }
-            }
-
-            min_location
+            range
+                .into_par_iter()
+                .map(|seed| almanac.associate(seed))
+                .min()
+                .unwrap_or_default()
         })
         .min()
         .unwrap_or_default();
