@@ -22,6 +22,7 @@ use nom::{
     Finish,
     IResult,
 };
+use rayon::prelude::*;
 
 #[derive(Debug)]
 struct ConversionRange {
@@ -207,17 +208,27 @@ pub fn second(
 ) {
     let (_, almanac) = Almanac::parse(data).finish().unwrap();
 
-    let mut min_location = u64::MAX;
-    for chunk in almanac.seeds.chunks_exact(2) {
-        let start = chunk[0];
-        let size = chunk[1];
-        for seed in start..(start + size) {
-            let location = almanac.associate(seed);
-            if location < min_location {
-                min_location = location;
+    let min_location = almanac
+        .seeds
+        .chunks_exact(2)
+        .collect::<Vec<_>>()
+        .par_iter()
+        .map(|chunk| {
+            let start = chunk[0];
+            let size = chunk[1];
+
+            let mut min_location = u64::MAX;
+            for seed in start..(start + size) {
+                let location = almanac.associate(seed);
+                if location < min_location {
+                    min_location = location;
+                }
             }
-        }
-    }
+
+            min_location
+        })
+        .min()
+        .unwrap_or_default();
 
     println!("[{}] Min location is {:?}", name, min_location);
 }
