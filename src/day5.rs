@@ -23,6 +23,7 @@ use nom::{
     IResult,
 };
 use rayon::prelude::*;
+use std::ops::Range;
 
 #[derive(Debug)]
 struct ConversionRange {
@@ -32,6 +33,10 @@ struct ConversionRange {
 }
 
 impl ConversionRange {
+    fn source_range_end(&self) -> u64 {
+        self.source_range_start + self.range_length
+    }
+
     fn parse(input: &str) -> IResult<&str, Self> {
         map(
             tuple((
@@ -100,6 +105,61 @@ impl ConversionMap {
         }
 
         source_index
+    }
+
+    fn associate_ranges(
+        &self,
+        ranges: Vec<Range<u64>>,
+    ) -> Vec<Range<u64>> {
+        ranges
+            .into_iter()
+            .flat_map(|r| self.associate_range(r))
+            .collect()
+    }
+
+    fn associate_range(
+        &self,
+        range: Range<u64>,
+    ) -> Vec<Range<u64>> {
+        let mut res: Vec<Range<u64>> = Vec::new();
+        let mut remaining = range;
+        while !&remaining.is_empty() {
+            let first_intersecting = self.ranges.iter().find(|r| {
+                r.source_range_start.max(remaining.start)
+                    < (r.source_range_start + r.range_length).min(remaining.end)
+            });
+
+            match first_intersecting {
+                None => {
+                    // No intersection => direct mapping, nothing else to do
+                    res.push(remaining.clone());
+                    remaining = Range::default();
+                }
+                Some(intersect) => {
+                    // If some elements before the intersection, direct mapping
+                    if intersect.source_range_start > remaining.start {
+                        res.push(remaining.start..intersect.source_range_start);
+                    }
+
+                    // Build the mapping source -> destination for the intersection
+                    let destination_start = intersect.destination_range_start
+                        + remaining.start.max(intersect.source_range_start)
+                        - intersect.source_range_start;
+                    let length = intersect.source_range_end().min(remaining.end)
+                        - remaining.start.max(intersect.source_range_start);
+                    res.push(destination_start..(destination_start + length));
+
+                    // Build the remaining range to be mapped
+                    if remaining.end > intersect.source_range_end() {
+                        remaining = intersect.source_range_end()..remaining.end
+                    } else {
+                        remaining = Range::default()
+                    }
+                }
+            }
+        }
+
+        res
     }
 }
 
@@ -183,6 +243,21 @@ impl Almanac {
         let humidity = self.temperature_to_humidity_map.associate(temperature);
         self.humidity_to_location_map.associate(humidity)
     }
+
+    fn associate_ranges(
+        &self,
+        ranges: Vec<Range<u64>>,
+    ) -> Vec<Range<u64>> {
+        let soil = self.seed_to_soil_map.associate_ranges(ranges);
+        let fertilizer = self.soil_to_fertilizer_map.associate_ranges(soil);
+        let water = self.fertilizer_to_water_map.associate_ranges(fertilizer);
+        let light = self.water_to_light_map.associate_ranges(water);
+        let temperature = self.light_to_temperature_map.associate_ranges(light);
+        let humidity = self
+            .temperature_to_humidity_map
+            .associate_ranges(temperature);
+        self.humidity_to_location_map.associate_ranges(humidity)
+    }
 }
 
 pub fn first(
@@ -229,9 +304,40 @@ pub fn second(
     println!("[{}] Min location is {:?}", name, min_location);
 }
 
+pub fn second_v2(
+    name: &str,
+    data: &str,
+) {
+    let (_, almanac) = Almanac::parse(data).finish().unwrap();
+
+    let ranges = almanac
+        .seeds
+        .chunks_exact(2)
+        .map(|chunk| {
+            let start = chunk[0];
+            let size = chunk[1];
+            start..(start + size)
+        })
+        .collect::<Vec<_>>();
+
+    // Map the ranges
+    let destination_ranges = almanac.associate_ranges(ranges);
+
+    // Min destination is the min start of the destination ranges
+    let min_location = destination_ranges
+        .iter()
+        .map(|r| r.start)
+        .min()
+        .unwrap_or_default();
+
+    println!("[{}] Min location is {:?}", name, min_location);
+}
+
 pub fn run() {
     first("First example", include_str!("data/day5/ex1")); // 35
     first("First", include_str!("data/day5/input")); // 227653707
     second("Second example", include_str!("data/day5/ex1")); // 46
     second("Second", include_str!("data/day5/input")); // 78775051
+    second_v2("Second example V2", include_str!("data/day5/ex1")); // 46
+    second_v2("Second V2", include_str!("data/day5/input")); // 46
 }
