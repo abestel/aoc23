@@ -4,6 +4,7 @@ mod day3;
 mod day4;
 mod day5;
 mod day6;
+mod day7;
 
 fn main() {
     let days = [
@@ -13,6 +14,7 @@ fn main() {
         day4::run,
         day5::run,
         day6::run,
+        day7::run,
     ];
 
     days.iter().enumerate().for_each(|(index, day_fn)| {
