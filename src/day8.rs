@@ -128,7 +128,7 @@ fn first(
     data: &str,
 ) {
     let (_, network) = Network::parse(data).finish().unwrap();
-    println!("[{}] Network: {:?}", name, network);
+    // println!("[{}] Network: {:?}", name, network);
 
     let visited = network.follow_until(network.node_for_label("AAA"), |node| node.label == "ZZZ");
 
@@ -141,7 +141,7 @@ fn second(
     data: &str,
 ) {
     let (_, network) = Network::parse(data).finish().unwrap();
-    println!("[{}] Network: {:?}", name, network);
+    // println!("[{}] Network: {:?}", name, network);
 
     // For each starting node
     let nodes: Vec<_> = network
