@@ -8,6 +8,7 @@ use nom::{
         space0,
     },
     combinator::{
+        all_consuming,
         map,
         opt,
         value,
@@ -75,7 +76,7 @@ struct Network<'a> {
 
 impl Network<'_> {
     fn parse(input: &str) -> IResult<&str, Network<'_>> {
-        map(
+        all_consuming(map(
             tuple((
                 terminated(many1(Direction::parse), many1(line_ending)),
                 many1(terminated(Node::parse, opt(line_ending))),
@@ -88,7 +89,7 @@ impl Network<'_> {
 
                 Network { directions, nodes }
             },
-        )(input)
+        ))(input)
     }
 
     fn node_for_label(
