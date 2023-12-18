@@ -34,8 +34,8 @@ enum Operation<'a> {
     Remove { label: &'a str },
 }
 
-impl <'a> Operation<'a> {
-    fn parse(input: &'a str) -> IResult<& str, Self> {
+impl<'a> Operation<'a> {
+    fn parse(input: &'a str) -> IResult<&str, Self> {
         alt((
             map(terminated(alpha1, char('-')), |label| {
                 Operation::Remove { label }
